@@ -498,6 +498,7 @@
     width: 100%;
     text-align: center;
     padding: 6px 0;
+    cursor: pointer;
   }
 
   .utility-buttons {
@@ -544,6 +545,48 @@
     text-align: center;
     margin: 15px 0;
   }
+
+  .storage-meter {
+    padding: 0 12px;
+    margin-bottom: 12px;
+  }
+
+  .storage-bar {
+    height: 8px;
+    background-color: #383838;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .storage-used {
+    height: 100%;
+    background-color: #FF8C00;
+    transition: width 0.3s ease;
+  }
+
+  .storage-text {
+    font-size: 12px;
+    color: #888;
+    margin-top: 4px;
+    text-align: center;
+  }
+
+  .no-cards-message {
+    text-align: center;
+    color: #888;
+    padding: 20px;
+    font-style: italic;
+  }
+
+  .category-select {
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px;
+    background-color: #383838;
+    border: 1px solid #FF8C00;
+    color: white;
+    border-radius: 4px;
+  }
 </style>
 </head>
 <body>
@@ -552,8 +595,16 @@
   
   <div class="sidebar" :class="{ 'open': sidebarOpen }">
     <div class="sidebar-content">
-      <div class="sidebar-logo">
+      <div class="sidebar-logo" @click="goToDefaultRoute">
         📌Walllist
+      </div>
+      <div class="storage-meter">
+        <div class="storage-bar">
+          <div class="storage-used" :style="{ width: storageUsagePercent + '%' }"></div>
+        </div>
+        <div class="storage-text">
+          Almacenamiento: {{ storageUsageMB.toFixed(2) }}MB / 5MB ({{ storageUsagePercent.toFixed(1) }}%)
+        </div>
       </div>
       <div class="utility-buttons">
         <button @click="toggleAllCategories" title="Expandir/Colapsar Todo">📎</button>
@@ -595,7 +646,7 @@
         </span>
       </div>
       
-      <div class="card-grid">
+      <div class="card-grid" v-if="currentCategoryId">
         <div v-for="card in filteredCards" :key="card.id" class="card" @click="handleCardClick(card)">
           <div class="card-buttons">
             <button @click.stop="editCard(card)" title="Editar">✏️</button>
@@ -607,7 +658,10 @@
           <span class="card-id">ID: {{ card.id }}</span>
         </div>
       </div>
-      <button class="add-card-button" @click="showAddCardModal = true">+</button>
+      <div v-else class="no-cards-message">
+        Selecciona una categoría para ver su contenido
+      </div>
+      <button v-if="currentCategoryId" class="add-card-button" @click="showAddCardModal = true">+</button>
     </div>
   </div>
 
@@ -640,6 +694,11 @@ v/[texto] - Para mostrar texto en una ventana emergente
 [texto] - Para copiar texto al portapapeles"></textarea>
       <input v-model="newCard.description" placeholder="Descripción (opcional)">
       <input v-model="newCard.imageUrl" placeholder="URL de la imagen (opcional)">
+      <select v-model="newCard.categoryId" class="category-select">
+        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+          {{ getCategoryPath(cat) }}
+        </option>
+      </select>
       <button @click="addCard">Agregar</button>
       <button @click="showAddCardModal = false">Cancelar</button>
     </div>
@@ -655,6 +714,11 @@ v/[texto] - Para mostrar texto en una ventana emergente
 [texto] - Para copiar texto al portapapeles"></textarea>
       <input v-model="editingCard.description" placeholder="Descripción (opcional)">
       <input v-model="editingCard.imageUrl" placeholder="URL de la imagen (opcional)">
+      <select v-model="editingCard.categoryId" class="category-select">
+        <option v-for="cat in categories" :key="cat.id" :value="cat.id">
+          {{ getCategoryPath(cat) }}
+        </option>
+      </select>
       <button @click="updateCard">Guardar</button>
       <button @click="showEditCardModal = false">Cancelar</button>
     </div>
@@ -757,7 +821,7 @@ new Vue({
     showPopup: false,
     newCategory: { name: '', parentId: null },
     editingCategory: null,
-    newCard: { title: '', content: '', description: '', imageUrl: '' },
+    newCard: { title: '', content: '', description: '', imageUrl: '', categoryId: null },
     editingCard: null,
     popupCard: null,
     sidebarOpen: false,
@@ -777,7 +841,9 @@ new Vue({
         { id: 1, title: 'Viaje a París', content: 'v/Planear viaje a París en primavera', description: 'Ideas para el viaje', imageUrl: 'https://example.com/paris.jpg', categoryId: 2 },
         { id: 2, title: 'Fotografía', content: '@https://learn-photography.com', description: 'Recursos para aprender', categoryId: 3 },
       ]
-    }
+    },
+    storageUsageMB: 0,
+    storageUsagePercent: 0,
   },
   created() {
     // Load preferences
@@ -809,6 +875,7 @@ new Vue({
     if (this.showIds) {
       document.body.classList.add('show-ids');
     }
+    this.updateStorageUsage();
   },
   computed: {
     topLevelCategories() {
@@ -827,19 +894,18 @@ new Vue({
       return result;
     },
     filteredCards() {
+      if (!this.currentCategoryId) return [];
       return this.cards.filter(card => {
         const searchText = this.removeAccents(this.searchQuery.toLowerCase());
-        const inCurrentCategory = !this.currentCategory || 
-          (card.categoryId === this.currentCategory.id || 
-           this.isDescendantCategory(card.categoryId, this.currentCategory.id));
+        const inCurrentCategory = card.categoryId === this.currentCategory.id || 
+          this.isDescendantCategory(card.categoryId, this.currentCategory.id);
         
-        // Search in title, content and description, removing accents for comparison
         const matchesSearch = !searchText || 
           this.removeAccents(card.title.toLowerCase()).includes(searchText) ||
           this.removeAccents(card.content.toLowerCase()).includes(searchText) ||
           (card.description && this.removeAccents(card.description.toLowerCase()).includes(searchText));
         
-        return (!this.currentCategory || inCurrentCategory) && (!searchText || matchesSearch);
+        return inCurrentCategory && (!searchText || matchesSearch);
       });
     },
     currentPath() {
@@ -899,11 +965,11 @@ new Vue({
         content: this.newCard.content,
         description: this.newCard.description,
         imageUrl: this.newCard.imageUrl,
-        categoryId: this.currentCategoryId
+        categoryId: this.newCard.categoryId
       });
       this.saveData(); // Save after adding
       this.showAddCardModal = false;
-      this.newCard = { title: '', content: '', description: '', imageUrl: '' };
+      this.newCard = { title: '', content: '', description: '', imageUrl: '', categoryId: null };
     },
     editCard(card) {
       this.editingCard = { ...card };
@@ -1061,7 +1127,44 @@ new Vue({
         cards: this.cards
       };
       localStorage.setItem('walllistData', JSON.stringify(data));
+      this.updateStorageUsage();
     },
+    updateStorageUsage() {
+      const data = JSON.stringify({
+        categories: this.categories,
+        cards: this.cards
+      });
+      
+      this.storageUsageMB = (new Blob([data]).size) / (1024 * 1024);
+      this.storageUsagePercent = (this.storageUsageMB / 5) * 100;
+    },
+    getCategoryPath(category) {
+      const path = [];
+      let current = category;
+      while (current) {
+        path.unshift(current.name);
+        current = this.categories.find(c => c.id === current.parentId);
+      }
+      return path.join(' > ');
+    },
+    goToDefaultRoute() {
+      this.currentCategoryId = null;
+      this.searchQuery = '';
+    },
+  },
+  watch: {
+    categories: {
+      handler() {
+        this.updateStorageUsage();
+      },
+      deep: true
+    },
+    cards: {
+      handler() {
+        this.updateStorageUsage();
+      },
+      deep: true
+    }
   }
 });
 </script>
