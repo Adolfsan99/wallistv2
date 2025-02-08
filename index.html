@@ -1,7 +1,8 @@
 <html><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Wallist</title>
+<title>Walllist</title>
+<link rel="icon" type="image/x-icon" href="favicon.png">
 <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
@@ -863,6 +864,7 @@ new Vue({
         parentId: this.newCategory.parentId,
         expanded: false
       });
+      this.saveData(); // Save after adding
       this.showAddCategoryModal = false;
       this.newCategory = { name: '', parentId: null };
     },
@@ -879,12 +881,14 @@ new Vue({
       if (index !== -1) {
         this.$set(this.categories, index, this.editingCategory);
       }
+      this.saveData(); // Save after updating
       this.showEditCategoryModal = false;
     },
     deleteCategory(category) {
       if (confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.name}" y todas sus subcategorías y tarjetas?`)) {
         this.categories = this.categories.filter(c => c.id !== category.id && c.parentId !== category.id);
         this.cards = this.cards.filter(card => card.categoryId !== category.id);
+        this.saveData(); // Save after deleting
       }
     },
     addCard() {
@@ -897,6 +901,7 @@ new Vue({
         imageUrl: this.newCard.imageUrl,
         categoryId: this.currentCategoryId
       });
+      this.saveData(); // Save after adding
       this.showAddCardModal = false;
       this.newCard = { title: '', content: '', description: '', imageUrl: '' };
     },
@@ -909,11 +914,13 @@ new Vue({
       if (index !== -1) {
         this.$set(this.cards, index, this.editingCard);
       }
+      this.saveData(); // Save after updating
       this.showEditCardModal = false;
     },
     deleteCard(card) {
       if (confirm(`¿Estás seguro de que quieres eliminar la tarjeta "${card.title}"?`)) {
         this.cards = this.cards.filter(c => c.id !== card.id);
+        this.saveData(); // Save after deleting
       }
     },
     handleCardClick(card) {
@@ -1047,7 +1054,14 @@ new Vue({
         document.body.classList.remove('show-ids');
       }
       localStorage.setItem('walllistShowIds', JSON.stringify(this.showIds));
-    }
+    },
+    saveData() {
+      const data = {
+        categories: this.categories,
+        cards: this.cards
+      };
+      localStorage.setItem('walllistData', JSON.stringify(data));
+    },
   }
 });
 </script>
