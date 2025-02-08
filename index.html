@@ -233,6 +233,8 @@
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     border-radius: 8px;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .card:hover {
@@ -242,8 +244,8 @@
 
   .card-image {
     width: 100%;
-    height: 120px;
-    object-fit: cover;
+    height: auto;
+    object-fit: contain;
     margin-bottom: 6px;
     border-radius: 5px;
   }
@@ -267,6 +269,11 @@
     padding: 2px 5px;
     font-size: 0.8em;
     border-radius: 3px;
+    display: none;
+  }
+
+  .show-ids .card-id {
+    display: block;
   }
 
   .card-buttons {
@@ -398,6 +405,11 @@
     color: #ffffff;
   }
 
+  .popup p {
+    white-space: pre-wrap;
+    line-height: 1.5;
+  }
+
   .hamburger-menu {
     font-size: 24px;
     cursor: pointer;
@@ -452,7 +464,14 @@
     font-size: 16px;
   }
 
-  .sidebar button {
+  .sidebar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  .sidebar-buttons button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -462,31 +481,49 @@
     padding: 8px 12px;
     border-radius: 15px;
     cursor: pointer;
-    margin-right: 8px;
-    margin-bottom: 8px;
     transition: all 0.2s ease;
     width: auto;
   }
 
-  .sidebar button:hover {
+  .sidebar-buttons button:hover {
     background-color: #FF8C00;
     color: #1a1a1a;
   }
 
   .sidebar-logo {
-    font-size: 20px;
-    color: #FF8C00;
+    font-size: 40px;
+    color: #ffffff;
     margin-bottom: 12px;
     width: 100%;
     text-align: center;
     padding: 6px 0;
   }
 
-  .sidebar-buttons {
+  .utility-buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     margin-bottom: 12px;
+  }
+
+  .utility-buttons button {
+    padding: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #383838;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .utility-buttons button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
   }
 
   /* Random number modal styles */
@@ -517,12 +554,14 @@
       <div class="sidebar-logo">
         📌Walllist
       </div>
-      <div class="sidebar-buttons">
-        <button class="tag-button" @click="generateRandom">🎲Generar n° Aleatorio</button>
-        <button class="tag-button" @click="importData">📲Importar datos</button>
-        <button class="tag-button" @click="exportData">💾Exportar datos</button>
-        <button class="tag-button" @click="exportCSV">🗂️Exportar datos en CSV</button>
-        <button class="tag-button" @click="clearData">🧹Limpiar datos</button>
+      <div class="utility-buttons">
+        <button @click="toggleAllCategories" title="Expandir/Colapsar Todo">📎</button>
+        <button @click="toggleShowIds" title="Mostrar/Ocultar IDs">🔢</button>
+        <button @click="generateRandom" title="Generar número aleatorio">🎲</button>
+        <button @click="importData" title="Importar datos">📲</button>
+        <button @click="exportData" title="Exportar datos">💾</button>
+        <button @click="exportCSV" title="Exportar datos en CSV">🗂️</button>
+        <button @click="clearData" title="Limpiar datos">🧹</button>
       </div>
       <h2>Categorías</h2>
       <button @click="showAddCategoryModal = true">Agregar Categoría</button>
@@ -559,7 +598,7 @@
         <div v-for="card in filteredCards" :key="card.id" class="card" @click="handleCardClick(card)">
           <div class="card-buttons">
             <button @click.stop="editCard(card)" title="Editar">✏️</button>
-            <button @click.stop="deleteCard(card)" title="Eliminar">🗑️</button>
+            <button @click.stop="deleteCard(card)" title="Eliminar">❌</button>
           </div>
           <img v-if="card.imageUrl" :src="card.imageUrl" :alt="card.title" class="card-image">
           <div class="card-title">{{ card.title }}</div>
@@ -660,11 +699,11 @@ Vue.component('category-item', {
           </span>
           <span class="category-name" @click="$emit('select', category)">{{ category.name }}</span>
         </div>
-        <div class="category-buttons">
-          <button @click.stop="addSubcategory" title="Agregar subcategoría">➕</button>
-          <button @click.stop="editCategory" title="Editar">✏️</button>
-          <button @click.stop="deleteCategory" title="Eliminar">🗑️</button>
-        </div>
+      <div class="category-buttons">
+        <button @click.stop="addSubcategory" title="Agregar subcategoría">✨</button>
+        <button @click.stop="editCategory" title="Editar">✏️</button>
+        <button @click.stop="deleteCategory" title="Eliminar">❌</button>
+      </div>
       </div>
       <div v-if="category.expanded" class="subcategories">
         <category-item 
@@ -706,15 +745,8 @@ Vue.component('category-item', {
 new Vue({
   el: '#app',
   data: {
-    categories: [
-      { id: 1, name: 'Personal', parentId: null, expanded: false },
-      { id: 2, name: 'Viajes', parentId: 1, expanded: false },
-      { id: 3, name: 'Hobbies', parentId: 1, expanded: false },
-    ],
-    cards: [
-      { id: 1, title: 'Viaje a París', content: 'v/Planear viaje a París en primavera', description: 'Ideas para el viaje', imageUrl: 'https://example.com/paris.jpg', categoryId: 2 },
-      { id: 2, title: 'Fotografía', content: '@https://learn-photography.com', description: 'Recursos para aprender', categoryId: 3 },
-    ],
+    categories: [],
+    cards: [],
     currentCategoryId: null,
     searchQuery: '',
     showAddCategoryModal: false,
@@ -731,7 +763,51 @@ new Vue({
     showRandomModal: false,
     randomStart: '',
     randomEnd: '',
-    randomResult: null
+    randomResult: null,
+    allExpanded: false,
+    showIds: false,
+    defaultData: {
+      categories: [
+        { id: 1, name: 'Personal', parentId: null, expanded: false },
+        { id: 2, name: 'Viajes', parentId: 1, expanded: false },
+        { id: 3, name: 'Hobbies', parentId: 1, expanded: false },
+      ],
+      cards: [
+        { id: 1, title: 'Viaje a París', content: 'v/Planear viaje a París en primavera', description: 'Ideas para el viaje', imageUrl: 'https://example.com/paris.jpg', categoryId: 2 },
+        { id: 2, title: 'Fotografía', content: '@https://learn-photography.com', description: 'Recursos para aprender', categoryId: 3 },
+      ]
+    }
+  },
+  created() {
+    // Load preferences
+    this.allExpanded = JSON.parse(localStorage.getItem('walllistAllExpanded') || 'false');
+    this.showIds = JSON.parse(localStorage.getItem('walllistShowIds') || 'false');
+    
+    // Load data
+    const savedData = localStorage.getItem('walllistData');
+    if (savedData) {
+      const parsed = JSON.parse(savedData);
+      this.categories = parsed.categories;
+      this.cards = parsed.cards;
+    } else {
+      // Use default data if no saved data exists
+      this.categories = this.defaultData.categories;
+      this.cards = this.defaultData.cards;
+      // Save default data
+      localStorage.setItem('walllistData', JSON.stringify(this.defaultData));
+    }
+
+    // Apply expansion state to all categories
+    if (this.allExpanded) {
+      this.categories.forEach(category => {
+        this.$set(category, 'expanded', true);
+      });
+    }
+
+    // Add showIds class if needed
+    if (this.showIds) {
+      document.body.classList.add('show-ids');
+    }
   },
   computed: {
     topLevelCategories() {
@@ -954,6 +1030,23 @@ new Vue({
         localStorage.removeItem('walllistData');
         alert('Datos eliminados correctamente');
       }
+    },
+    toggleAllCategories() {
+      this.allExpanded = !this.allExpanded;
+      this.categories.forEach(category => {
+        this.$set(category, 'expanded', this.allExpanded);
+      });
+      localStorage.setItem('walllistAllExpanded', JSON.stringify(this.allExpanded));
+    },
+    
+    toggleShowIds() {
+      this.showIds = !this.showIds;
+      if (this.showIds) {
+        document.body.classList.add('show-ids');
+      } else {
+        document.body.classList.remove('show-ids');
+      }
+      localStorage.setItem('walllistShowIds', JSON.stringify(this.showIds));
     }
   }
 });
