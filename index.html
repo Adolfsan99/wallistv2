@@ -1,0 +1,962 @@
+<html><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WebSim Pinterest Clone - Categorías y Tarjetas Avanzadas</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+  body, html {
+    margin: 0;
+    padding: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+    height: 100%;
+    background-color: #1a1a1a;
+    color: #ffffff;
+  }
+
+  #app {
+    display: flex;
+    height: 100vh;
+  }
+
+  .sidebar {
+    width: 300px;
+    background-color: #2d2d2d;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+    position: fixed;
+    top: 0;
+    left: -300px;
+    height: 100%;
+    transition: left 0.3s ease;
+    z-index: 1000;
+    overflow-y: auto;
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-content {
+    padding: 12px;
+  }
+
+  .main-content {
+    flex-grow: 1;
+    padding: 12px;
+    margin-left: 0;
+    transition: margin-left 0.3s ease;
+  }
+
+  .main-content.sidebar-open {
+    margin-left: 300px;
+  }
+
+  .category {
+    margin-bottom: 6px;
+  }
+
+  .category-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 3px;
+    background-color: #383838;
+    padding: 6px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+  }
+
+  .category-item:hover {
+    background-color: #424242;
+  }
+
+  .category-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .category-toggle {
+    cursor: pointer;
+    width: 20px;
+    text-align: center;
+    color: #FF8C00;
+  }
+
+  .category-name {
+    flex: 1;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  .category-name:hover, .card-title {
+    color: #FF8C00;
+    text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+  }
+
+  .category-buttons {
+    display: flex;
+    gap: 3px;
+    justify-content: flex-end;
+  }
+
+  .category-buttons button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 6px;
+    font-size: 13px;
+    background-color: #383838;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .category-buttons button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+  }
+
+  .tag-button {
+    background-color: #383838;
+    color: #ffffff;
+    border: none;
+    border-radius: 15px;
+    padding: 4px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .tag-button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+  }
+
+  button {
+    background-color: #383838;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 13px;
+  }
+
+  button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+  }
+
+  .subcategories {
+    margin-left: 15px;
+  }
+
+  .search-container {
+    position: relative;
+    margin-bottom: 12px;
+    width: calc(100% - 64px);
+  }
+
+  .search-bar {
+    width: 100%;
+    padding: 8px 32px 8px 8px;
+    margin-bottom: 0;
+    box-sizing: border-box;
+    border: 1px solid #383838;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    background-color: #2d2d2d;
+    color: #ffffff;
+    border-radius: 4px;
+  }
+
+  .search-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #FF8C00;
+    pointer-events: none;
+    opacity: 0.8;
+    transition: opacity 0.3s ease;
+  }
+
+  .search-bar:focus {
+    border-color: #FF8C00;
+    outline: none;
+    box-shadow: 0 0 10px rgba(255, 140, 0, 0.2);
+  }
+
+  .search-bar:focus + .search-icon {
+    opacity: 1;
+  }
+
+  .search-bar::placeholder {
+    color: #888;
+  }
+
+  .breadcrumb {
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: #FF8C00;
+  }
+
+  .breadcrumb span {
+    cursor: pointer;
+    transition: text-shadow 0.3s ease;
+  }
+
+  .breadcrumb span:hover {
+    text-shadow: 0 0 10px rgba(255, 140, 0, 0.5);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    position: relative;
+    background-color: #2d2d2d;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(255, 140, 0, 0.2);
+  }
+
+  .card-image {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    margin-bottom: 6px;
+    border-radius: 5px;
+  }
+
+  .card-title {
+    font-size: 14px;
+  }
+
+  .card-description {
+    font-size: 12px;
+    color: #bbbbbb;
+    margin-bottom: 6px;
+  }
+
+  .card-id {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background-color: rgba(0,0,0,0.5);
+    color: #FF8C00;
+    padding: 2px 5px;
+    font-size: 0.8em;
+    border-radius: 3px;
+  }
+
+  .card-buttons {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    display: flex;
+    gap: 5px;
+  }
+
+  .card:hover .card-buttons {
+    opacity: 1;
+  }
+
+  .card-buttons button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    font-size: 14px;
+    background-color: #383838;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .add-card-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #FF8C00;
+    color: #1a1a1a;
+    border: none;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: transform 0.3s;
+  }
+
+  .add-card-button:hover {
+    transform: scale(1.1);
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1001;
+  }
+
+  .modal-content {
+    background-color: #2d2d2d;
+    border: 1px solid #FF8C00;
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.2);
+    padding: 15px;
+    border-radius: 8px;
+    width: 400px;
+    max-width: 90%;
+    color: #ffffff;
+  }
+
+  .modal-content input, 
+  .modal-content textarea {
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: #383838;
+    color: #ffffff;
+  }
+
+  .modal-content button {
+    padding: 6px 12px;
+    margin-right: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s;
+  }
+
+  .modal-content button:first-of-type {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+  }
+
+  .modal-content button:first-of-type:hover {
+    background-color: #E67300;
+  }
+
+  .modal-content button:last-of-type {
+    background-color: #ff4444;
+    color: #ffffff;
+  }
+
+  .modal-content button:last-of-type:hover {
+    background-color: #cc3333;
+  }
+
+  .popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #2d2d2d;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    max-width: 80%;
+    max-height: 80%;
+    overflow-y: auto;
+    z-index: 1002;
+    color: #ffffff;
+  }
+
+  .hamburger-menu {
+    font-size: 24px;
+    cursor: pointer;
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 1001;
+    transition: left 0.3s ease;
+    color: #FF8C00;
+    text-shadow: 0 0 10px rgba(255, 140, 0, 0.3);
+  }
+
+  .hamburger-menu.open {
+    left: 310px;
+  }
+
+  .top-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .top-buttons button {
+    padding: 8px 15px;
+    background-color: #383838;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #ffffff;
+  }
+
+  .top-buttons button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+  }
+
+  .current-path {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 6px;
+    margin-left: 24px;
+  }
+
+  .main-content-wrapper {
+    padding-left: 24px;
+  }
+
+  .sidebar h2 {
+    color: #FF8C00;
+    margin-bottom: 10px;
+    font-size: 16px;
+  }
+
+  .sidebar button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #383838;
+    color: #ffffff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 15px;
+    cursor: pointer;
+    margin-right: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+    width: auto;
+  }
+
+  .sidebar button:hover {
+    background-color: #FF8C00;
+    color: #1a1a1a;
+  }
+
+  .sidebar-logo {
+    font-size: 20px;
+    color: #FF8C00;
+    margin-bottom: 12px;
+    width: 100%;
+    text-align: center;
+    padding: 6px 0;
+  }
+
+  .sidebar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+
+  /* Random number modal styles */
+  .random-modal input {
+    width: 100%;
+    margin-bottom: 6px;
+    padding: 6px;
+    background-color: #383838;
+    border: 1px solid #FF8C00;
+    color: white;
+    border-radius: 4px;
+  }
+
+  .random-result {
+    font-size: 24px;
+    color: #FF8C00;
+    text-align: center;
+    margin: 15px 0;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hamburger-menu" :class="{ 'open': sidebarOpen }" @click="toggleSidebar">☰</div>
+  
+  <div class="sidebar" :class="{ 'open': sidebarOpen }">
+    <div class="sidebar-content">
+      <div class="sidebar-logo">
+        📌Walllist
+      </div>
+      <div class="sidebar-buttons">
+        <button class="tag-button" @click="generateRandom">🎲Generar n° Aleatorio</button>
+        <button class="tag-button" @click="importData">📲Importar datos</button>
+        <button class="tag-button" @click="exportData">💾Exportar datos</button>
+        <button class="tag-button" @click="exportCSV">🗂️Exportar datos en CSV</button>
+        <button class="tag-button" @click="clearData">🧹Limpiar datos</button>
+      </div>
+      <h2>Categorías</h2>
+      <button @click="showAddCategoryModal = true">Agregar Categoría</button>
+      <div v-for="category in topLevelCategories" :key="category.id">
+        <category-item :category="category" :all-categories="categories" @select="selectCategory"></category-item>
+      </div>
+    </div>
+  </div>
+  
+  <div class="main-content" :class="{ 'sidebar-open': sidebarOpen }">
+    <div class="main-content-wrapper">
+      <div class="current-path">
+        Ruta actual: {{ currentPath }}
+      </div>
+      
+      <div class="search-container">
+        <input 
+          type="text" 
+          class="search-bar" 
+          v-model="searchQuery" 
+          placeholder="Escribe para buscar tarjetas..."
+          title="La búsqueda se realiza automáticamente mientras escribes">
+        <span class="search-icon" title="Búsqueda en tiempo real">🔍</span>
+      </div>
+
+      <div class="breadcrumb">
+        <span v-for="(category, index) in breadcrumb" :key="index">
+          <span @click="selectCategory(category)">{{ category.name }}</span>
+          <span v-if="index < breadcrumb.length - 1"> > </span>
+        </span>
+      </div>
+      
+      <div class="card-grid">
+        <div v-for="card in filteredCards" :key="card.id" class="card" @click="handleCardClick(card)">
+          <div class="card-buttons">
+            <button @click.stop="editCard(card)" title="Editar">✏️</button>
+            <button @click.stop="deleteCard(card)" title="Eliminar">🗑️</button>
+          </div>
+          <img v-if="card.imageUrl" :src="card.imageUrl" :alt="card.title" class="card-image">
+          <div class="card-title">{{ card.title }}</div>
+          <div v-if="card.description" class="card-description">{{ card.description }}</div>
+          <span class="card-id">ID: {{ card.id }}</span>
+        </div>
+      </div>
+      <button class="add-card-button" @click="showAddCardModal = true">+</button>
+    </div>
+  </div>
+
+  <!-- Modales -->
+  <div v-if="showAddCategoryModal" class="modal">
+    <div class="modal-content">
+      <h2>Agregar Categoría</h2>
+      <input v-model="newCategory.name" placeholder="Nombre de la categoría">
+      <button @click="addCategory">Agregar</button>
+      <button @click="showAddCategoryModal = false">Cancelar</button>
+    </div>
+  </div>
+
+  <div v-if="showEditCategoryModal" class="modal">
+    <div class="modal-content">
+      <h2>Editar Categoría</h2>
+      <input v-model="editingCategory.name" placeholder="Nombre de la categoría">
+      <button @click="updateCategory">Guardar</button>
+      <button @click="showEditCategoryModal = false">Cancelar</button>
+    </div>
+  </div>
+
+  <div v-if="showAddCardModal" class="modal">
+    <div class="modal-content">
+      <h2>Agregar Tarjeta</h2>
+      <input v-model="newCard.title" placeholder="Título">
+      <textarea v-model="newCard.content" placeholder="Contenido - Formatos disponibles:
+v/[texto] - Para mostrar texto en una ventana emergente
+@[url] - Para abrir un enlace en nueva pestaña
+[texto] - Para copiar texto al portapapeles"></textarea>
+      <input v-model="newCard.description" placeholder="Descripción (opcional)">
+      <input v-model="newCard.imageUrl" placeholder="URL de la imagen (opcional)">
+      <button @click="addCard">Agregar</button>
+      <button @click="showAddCardModal = false">Cancelar</button>
+    </div>
+  </div>
+
+  <div v-if="showEditCardModal" class="modal">
+    <div class="modal-content">
+      <h2>Editar Tarjeta</h2>
+      <input v-model="editingCard.title" placeholder="Título">
+      <textarea v-model="editingCard.content" placeholder="Contenido - Formatos disponibles:
+v/[texto] - Para mostrar texto en una ventana emergente
+@[url] - Para abrir un enlace en nueva pestaña
+[texto] - Para copiar texto al portapapeles"></textarea>
+      <input v-model="editingCard.description" placeholder="Descripción (opcional)">
+      <input v-model="editingCard.imageUrl" placeholder="URL de la imagen (opcional)">
+      <button @click="updateCard">Guardar</button>
+      <button @click="showEditCardModal = false">Cancelar</button>
+    </div>
+  </div>
+
+  <div v-if="showPopup" class="popup">
+    <h2>{{ popupCard.title }}</h2>
+    <p>{{ popupCard.content.slice(2) }}</p>
+    <button @click="showPopup = false">Cerrar</button>
+  </div>
+
+  <!-- Add random number modal -->
+  <div v-if="showRandomModal" class="modal">
+    <div class="modal-content random-modal">
+      <h2>Generar Número Aleatorio</h2>
+      <input type="number" v-model="randomStart" placeholder="Número inicial">
+      <input type="number" v-model="randomEnd" placeholder="Número final">
+      <div v-if="randomResult" class="random-result">
+        {{ randomResult }}
+      </div>
+      <button @click="calculateRandom">Generar</button>
+      <button @click="showRandomModal = false">Cerrar</button>
+    </div>
+  </div>
+
+  <input 
+    type="file" 
+    ref="fileInput" 
+    @change="handleFileImport" 
+    accept=".json"
+    style="display: none">
+</div>
+
+<script>
+Vue.component('category-item', {
+  props: ['category', 'allCategories'],
+  template: `
+    <div class="category">
+      <div class="category-item">
+        <div class="category-header">
+          <span class="category-toggle" @click="toggleCategory">
+            {{ hasChildren ? (category.expanded ? '▼' : '►') : '&nbsp;&nbsp;' }}
+          </span>
+          <span class="category-name" @click="$emit('select', category)">{{ category.name }}</span>
+        </div>
+        <div class="category-buttons">
+          <button @click.stop="addSubcategory" title="Agregar subcategoría">➕</button>
+          <button @click.stop="editCategory" title="Editar">✏️</button>
+          <button @click.stop="deleteCategory" title="Eliminar">🗑️</button>
+        </div>
+      </div>
+      <div v-if="category.expanded" class="subcategories">
+        <category-item 
+          v-for="subcategory in subcategories" 
+          :key="subcategory.id" 
+          :category="subcategory"
+          :all-categories="allCategories"
+          @select="$emit('select', $event)"
+        ></category-item>
+      </div>
+    </div>
+  `,
+  computed: {
+    subcategories() {
+      return this.allCategories.filter(c => c.parentId === this.category.id);
+    },
+    hasChildren() {
+      return this.subcategories.length > 0;
+    }
+  },
+  methods: {
+    toggleCategory() {
+      if (this.hasChildren) {
+        this.$set(this.category, 'expanded', !this.category.expanded);
+      }
+    },
+    addSubcategory() {
+      this.$root.addSubcategory(this.category);
+    },
+    editCategory() {
+      this.$root.editCategory(this.category);
+    },
+    deleteCategory() {
+      this.$root.deleteCategory(this.category);
+    }
+  }
+});
+
+new Vue({
+  el: '#app',
+  data: {
+    categories: [
+      { id: 1, name: 'Personal', parentId: null, expanded: false },
+      { id: 2, name: 'Viajes', parentId: 1, expanded: false },
+      { id: 3, name: 'Hobbies', parentId: 1, expanded: false },
+    ],
+    cards: [
+      { id: 1, title: 'Viaje a París', content: 'v/Planear viaje a París en primavera', description: 'Ideas para el viaje', imageUrl: 'https://example.com/paris.jpg', categoryId: 2 },
+      { id: 2, title: 'Fotografía', content: '@https://learn-photography.com', description: 'Recursos para aprender', categoryId: 3 },
+    ],
+    currentCategoryId: null,
+    searchQuery: '',
+    showAddCategoryModal: false,
+    showEditCategoryModal: false,
+    showAddCardModal: false,
+    showEditCardModal: false,
+    showPopup: false,
+    newCategory: { name: '', parentId: null },
+    editingCategory: null,
+    newCard: { title: '', content: '', description: '', imageUrl: '' },
+    editingCard: null,
+    popupCard: null,
+    sidebarOpen: false,
+    showRandomModal: false,
+    randomStart: '',
+    randomEnd: '',
+    randomResult: null
+  },
+  computed: {
+    topLevelCategories() {
+      return this.categories.filter(c => c.parentId === null);
+    },
+    currentCategory() {
+      return this.categories.find(c => c.id === this.currentCategoryId);
+    },
+    breadcrumb() {
+      const result = [];
+      let category = this.currentCategory;
+      while (category) {
+        result.unshift(category);
+        category = this.categories.find(c => c.id === category.parentId);
+      }
+      return result;
+    },
+    filteredCards() {
+      return this.cards.filter(card => {
+        const searchText = this.removeAccents(this.searchQuery.toLowerCase());
+        const inCurrentCategory = !this.currentCategory || 
+          (card.categoryId === this.currentCategory.id || 
+           this.isDescendantCategory(card.categoryId, this.currentCategory.id));
+        
+        // Search in title, content and description, removing accents for comparison
+        const matchesSearch = !searchText || 
+          this.removeAccents(card.title.toLowerCase()).includes(searchText) ||
+          this.removeAccents(card.content.toLowerCase()).includes(searchText) ||
+          (card.description && this.removeAccents(card.description.toLowerCase()).includes(searchText));
+        
+        return (!this.currentCategory || inCurrentCategory) && (!searchText || matchesSearch);
+      });
+    },
+    currentPath() {
+      return this.breadcrumb.map(category => category.name).join(' > ');
+    }
+  },
+  methods: {
+    removeAccents(str) {
+      return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    },
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen;
+    },
+    selectCategory(category) {
+      this.currentCategoryId = category.id;
+    },
+    addCategory() {
+      const newId = Math.max(...this.categories.map(c => c.id), 0) + 1;
+      this.categories.push({
+        id: newId,
+        name: this.newCategory.name,
+        parentId: this.newCategory.parentId,
+        expanded: false
+      });
+      this.showAddCategoryModal = false;
+      this.newCategory = { name: '', parentId: null };
+    },
+    addSubcategory(parentCategory) {
+      this.newCategory = { name: '', parentId: parentCategory.id };
+      this.showAddCategoryModal = true;
+    },
+    editCategory(category) {
+      this.editingCategory = { ...category };
+      this.showEditCategoryModal = true;
+    },
+    updateCategory() {
+      const index = this.categories.findIndex(c => c.id === this.editingCategory.id);
+      if (index !== -1) {
+        this.$set(this.categories, index, this.editingCategory);
+      }
+      this.showEditCategoryModal = false;
+    },
+    deleteCategory(category) {
+      if (confirm(`¿Estás seguro de que quieres eliminar la categoría "${category.name}" y todas sus subcategorías y tarjetas?`)) {
+        this.categories = this.categories.filter(c => c.id !== category.id && c.parentId !== category.id);
+        this.cards = this.cards.filter(card => card.categoryId !== category.id);
+      }
+    },
+    addCard() {
+      const newId = Math.max(...this.cards.map(c => c.id), 0) + 1;
+      this.cards.push({
+        id: newId,
+        title: this.newCard.title,
+        content: this.newCard.content,
+        description: this.newCard.description,
+        imageUrl: this.newCard.imageUrl,
+        categoryId: this.currentCategoryId
+      });
+      this.showAddCardModal = false;
+      this.newCard = { title: '', content: '', description: '', imageUrl: '' };
+    },
+    editCard(card) {
+      this.editingCard = { ...card };
+      this.showEditCardModal = true;
+    },
+    updateCard() {
+      const index = this.cards.findIndex(c => c.id === this.editingCard.id);
+      if (index !== -1) {
+        this.$set(this.cards, index, this.editingCard);
+      }
+      this.showEditCardModal = false;
+    },
+    deleteCard(card) {
+      if (confirm(`¿Estás seguro de que quieres eliminar la tarjeta "${card.title}"?`)) {
+        this.cards = this.cards.filter(c => c.id !== card.id);
+      }
+    },
+    handleCardClick(card) {
+      if (card.content.startsWith('@')) {
+        window.open(card.content.slice(1), '_blank');
+      } else if (card.content.startsWith('v/')) {
+        this.popupCard = card;
+        this.showPopup = true;
+      } else {
+        navigator.clipboard.writeText(card.content)
+          .then(() => alert('Contenido copiado al portapapeles'))
+          .catch(err => console.error('Error al copiar:', err));
+      }
+    },
+    isDescendantCategory(categoryId, ancestorId) {
+      let category = this.categories.find(c => c.id === categoryId);
+      while (category) {
+        if (category.id === ancestorId) return true;
+        category = this.categories.find(c => c.id === category.parentId);
+      }
+      return false;
+    },
+    generateRandom() {
+      this.showRandomModal = true;
+      this.randomStart = '';
+      this.randomEnd = '';
+      this.randomResult = null;
+    },
+
+    calculateRandom() {
+      const start = parseInt(this.randomStart);
+      const end = parseInt(this.randomEnd);
+      if (!isNaN(start) && !isNaN(end) && start <= end) {
+        this.randomResult = Math.floor(Math.random() * (end - start + 1)) + start;
+      }
+    },
+
+    importData() {
+      // Trigger file input click
+      this.$refs.fileInput.click();
+    },
+
+    handleFileImport(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const parsed = JSON.parse(e.target.result);
+            this.categories = parsed.categories;
+            this.cards = parsed.cards;
+            // Also save to localStorage
+            localStorage.setItem('walllistData', JSON.stringify(parsed));
+            alert('Datos importados correctamente');
+          } catch (e) {
+            alert('Error al importar datos: formato de archivo inválido');
+          }
+        };
+        reader.onerror = () => {
+          alert('Error al leer el archivo');
+        };
+        reader.readAsText(file);
+      }
+      // Reset file input
+      event.target.value = '';
+    },
+
+    exportData() {
+      const data = {
+        categories: this.categories,
+        cards: this.cards
+      };
+      const json = JSON.stringify(data);
+      
+      // Create blob and download
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'walllist_data.json');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      // Also save to localStorage as backup
+      localStorage.setItem('walllistData', json);
+      alert('Datos exportados correctamente');
+    },
+
+    exportCSV() {
+      const categoriesCSV = this.categories.map(c => 
+        `${c.id},${c.name},${c.parentId}`
+      ).join('\n');
+      
+      const cardsCSV = this.cards.map(c => 
+        `${c.id},${c.title},${c.categoryId},${c.description},${c.imageUrl},${c.content}`
+      ).join('\n');
+
+      const csv = `Categories:\nID,Name,ParentID\n${categoriesCSV}\n\nCards:\nID,Title,CategoryID,Description,ImageURL,Content\n${cardsCSV}`;
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', 'walllist_data.csv');
+      a.click();
+    },
+
+    clearData() {
+      if (confirm('¿Estás seguro de que deseas eliminar todos los datos? Esta acción no se puede deshacer.')) {
+        this.categories = [];
+        this.cards = [];
+        localStorage.removeItem('walllistData');
+        alert('Datos eliminados correctamente');
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
