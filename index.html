@@ -1,4 +1,5 @@
-<html><head>
+<html>
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Walllist</title>
@@ -704,7 +705,7 @@
         </div>
       </div>
       <div v-else class="no-cards-message">
-        Selecciona una categoría para ver su contenido
+        <a href="https://github.com/Adolfsan99" style="color: #FF8C00; text-decoration: none;">Creado por: Adolfo Sánchez</a>
       </div>
       <button v-if="currentCategoryId" class="add-card-button" @click="showAddCardModal = true">+</button>
     </div>
@@ -939,9 +940,21 @@ new Vue({
       return result;
     },
     filteredCards() {
+      const searchText = this.removeAccents(this.searchQuery.toLowerCase());
+      
+      // Si no hay categoría seleccionada y hay búsqueda, mostrar todas las tarjetas que coincidan
+      if (!this.currentCategoryId && searchText) {
+        return this.cards.filter(card => {
+          return this.removeAccents(card.title.toLowerCase()).includes(searchText) ||
+                 this.removeAccents(card.content.toLowerCase()).includes(searchText) ||
+                 (card.description && this.removeAccents(card.description.toLowerCase()).includes(searchText));
+        });
+      }
+      
+      // Si hay categoría seleccionada, mantener el comportamiento actual
       if (!this.currentCategoryId) return [];
+      
       return this.cards.filter(card => {
-        const searchText = this.removeAccents(this.searchQuery.toLowerCase());
         const inCurrentCategory = card.categoryId === this.currentCategory.id || 
           this.isDescendantCategory(card.categoryId, this.currentCategory.id);
         
